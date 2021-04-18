@@ -93,7 +93,7 @@ class _SocialEmbedState extends State<SocialEmbed> with WidgetsBindingObserver {
         });
     return SizedBox(
         height: _height,
-        width: double.infinity,
+        width: MediaQuery.of(context).size.width,
         child: Center(
           child: wv,
         ));
@@ -101,7 +101,16 @@ class _SocialEmbedState extends State<SocialEmbed> with WidgetsBindingObserver {
 
   JavascriptChannel _getHeightJavascriptChannel() {
     return JavascriptChannel(
-        name: 'PageHeight', onMessageReceived: (JavascriptMessage message) {});
+        name: 'PageHeight',
+        onMessageReceived: (JavascriptMessage message) {
+          _setHeight(double.parse(message.message));
+        });
+  }
+
+  void _setHeight(double height) {
+    setState(() {
+      _height = height + smObj.bottomMargin;
+    });
   }
 
   Color getBackgroundColor(BuildContext context) {
