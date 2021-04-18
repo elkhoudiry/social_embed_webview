@@ -5,7 +5,7 @@ import 'social-media-generic.dart';
 class YoutubeEmbedData extends SocialMediaGenericEmbedData {
   final String videoId;
 
-  const YoutubeEmbedData({@required this.videoId})
+  const YoutubeEmbedData({required this.videoId})
       : super(supportMediaControll: true, aspectRatio: 16 / 9);
 
   @override

@@ -8,9 +8,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class SocialEmbed extends StatefulWidget {
   final SocialMediaGenericEmbedData socialMediaObj;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   const SocialEmbed(
-      {Key key, @required this.socialMediaObj, this.backgroundColor})
+      {Key? key, required this.socialMediaObj, this.backgroundColor})
       : super(key: key);
 
   @override
@@ -18,23 +18,23 @@ class SocialEmbed extends StatefulWidget {
 }
 
 class _SocialEmbedState extends State<SocialEmbed> with WidgetsBindingObserver {
-  double _height = 300;
-  WebViewController wbController;
-  SocialMediaGenericEmbedData smObj;
-  String htmlBody;
+  double _height = 250;
+  late WebViewController wbController;
+  late SocialMediaGenericEmbedData smObj;
+  late String htmlBody;
 
   @override
   void initState() {
     super.initState();
     smObj = widget.socialMediaObj;
     htmlBody = getHtmlBody();
-    if (smObj.supportMediaControll) WidgetsBinding.instance.addObserver(this);
+    if (smObj.supportMediaControll) WidgetsBinding.instance!.addObserver(this);
   }
 
   @override
   void dispose() {
     if (smObj.supportMediaControll)
-      WidgetsBinding.instance.removeObserver(this);
+      WidgetsBinding.instance!.removeObserver(this);
     super.dispose();
   }
 
@@ -63,13 +63,25 @@ class _SocialEmbedState extends State<SocialEmbed> with WidgetsBindingObserver {
         onWebViewCreated: (wbc) {
           wbController = wbc;
         },
-        onPageFinished: (str) {
+        onPageFinished: (str) async {
           final color = colorToHtmlRGBA(getBackgroundColor(context));
           wbController.evaluateJavascript(
               'document.body.style= "background-color: $color"');
           if (smObj.aspectRatio == null)
             wbController
                 .evaluateJavascript('setTimeout(() => sendHeight(), 0)');
+          double finalHeight = _height;
+          try {
+            await Future.delayed(Duration(seconds: 3), () async {
+              final log = "document.getElementById('widget').clientHeight;";
+              finalHeight =
+                  double.parse(await wbController.evaluateJavascript(log));
+            });
+
+            setState(() {
+              _height = finalHeight < 250 ? 250 : finalHeight;
+            });
+          } catch (e) {}
         },
         navigationDelegate: (navigation) async {
           final url = navigation.url;
@@ -79,30 +91,17 @@ class _SocialEmbedState extends State<SocialEmbed> with WidgetsBindingObserver {
           }
           return NavigationDecision.navigate;
         });
-    final ar = smObj.aspectRatio;
-    return (ar != null)
-        ? ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height / 1.5,
-              maxWidth: double.infinity,
-            ),
-            child: AspectRatio(aspectRatio: ar, child: wv),
-          )
-        : SizedBox(height: _height, child: wv);
+    return SizedBox(
+        height: _height,
+        width: double.infinity,
+        child: Center(
+          child: wv,
+        ));
   }
 
   JavascriptChannel _getHeightJavascriptChannel() {
     return JavascriptChannel(
-        name: 'PageHeight',
-        onMessageReceived: (JavascriptMessage message) {
-          _setHeight(double.parse(message.message));
-        });
-  }
-
-  void _setHeight(double height) {
-    setState(() {
-      _height = height + smObj.bottomMargin;
-    });
+        name: 'PageHeight', onMessageReceived: (JavascriptMessage message) {});
   }
 
   Color getBackgroundColor(BuildContext context) {
